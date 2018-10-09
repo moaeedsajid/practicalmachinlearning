@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-##Synopsis
+## Synopsis
 
 Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks.
 
@@ -56,7 +56,7 @@ validateData <- ssdata2[-inTrain,]
 dim(trainData);dim(validateData)
 ```
 
-###Choosing and building our model
+## Choosing and building our model
 
 As we have mulitple categorical values within our predictor we will look to run a random forest model on this dataset first
 
@@ -81,7 +81,7 @@ modelfit$finalModel
 
 From our modelfit summary we can see that repeat cross validation was done on the test data set, there is a less than 1% out of sample/box error rate and an accuracy of just over 99%
 
-##Validation  
+## Validation  
 
 We will also validate this model against the validation dataset created earlier
 
@@ -92,7 +92,7 @@ confusionMatrix(predvalidate,validateData$classe)
 
 The predictions against the validation dataset have also shown an accuracy over 99%
 
-##Project Test Cases  
+## Project Test Cases  
 
 We will now import the 20 test cases for which we do not have the classe value and run our prediction model on this.  To be able to predict on these we need to make sure these contain the same features used to build our model and so we make sure we only select the same columns as used in our model first. </p>
 

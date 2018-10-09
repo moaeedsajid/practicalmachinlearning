@@ -219,8 +219,9 @@ validateData &lt;- ssdata2[-inTrain,]
 dim(trainData);dim(validateData)</code></pre>
 <pre><code>## [1] 13737    53</code></pre>
 <pre><code>## [1] 5885   53</code></pre>
-<div id="choosing-and-building-our-model" class="section level3">
-<h3>Choosing and building our model</h3>
+</div>
+<div id="choosing-and-building-our-model" class="section level2">
+<h2>Choosing and building our model</h2>
 <p>As we have mulitple categorical values within our predictor we will look to run a random forest model on this dataset first</p>
 <p>A key point for this project was to make sure we <strong>cross validated</strong> our model. As I mentioned earlier we have created a validation dataset above and will also use the train package and it’s trControl parameter to run multiple repeated cross validations whilst building the model. This will then select the most accurate model from it’s calculations</p>
 <p>Running multiple models can take quite some time and to make sure we use all our CPU cores the doParallel library is loaded. If this code is being run elsewhere please update the 4 value on the line starting cl with the number of cores on your device. Also for reproducibility we will set a seed.</p>
@@ -271,7 +272,6 @@ modelfit</code></pre>
 ## D    0    0   34 2216    2 0.0159857904
 ## E    0    0    1    5 2519 0.0023762376</code></pre>
 <p>From our modelfit summary we can see that repeat cross validation was done on the test data set, there is a less than 1% out of sample/box error rate and an accuracy of just over 99%</p>
-</div>
 </div>
 <div id="validation" class="section level2">
 <h2>Validation</h2>
