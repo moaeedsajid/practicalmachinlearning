@@ -1,0 +1,104 @@
+<html>
+
+<head><h1>Analysing Barbell Exercises with a Wearable Device</h1></title>
+</head>
+
+<body>
+
+<h2> Synopsis </h2>
+
+<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. </p>
+
+<p>One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset)</p>
+
+<h2> Importing and transforming our dataset</h2>
+
+<!--begin.rcode
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "train.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "test.csv")
+
+completeTrainData <- read.csv(file="train.csv", na.strings = c("", "#DIV/0!", "NA"))
+
+
+end.rcode-->
+<p>To start off with we have downloaded both the training and test (final prediction datasets).  The dataset was then imported and any values that were not available are set to NA  </p>
+
+<p>We then subset our training data by to remove any rows containg NA values as these would otherwise make it difficult to create an accurate model against. </p>
+
+<!--begin.rcode
+datarows <- which(apply(!is.na(completeTrainData), 2, all))
+ssdata1 <- completeTrainData[,datarows]
+str(ssdata1)
+end.rcode-->
+
+<p>We have been asked to use the data from the sensors on the dumbells, arms, and belts and the str command run above shows some additional columns still.  We will use the grep command to further subset this data. </p>
+
+
+<!--begin.rcode
+modelcols <- c(grep("bel", names(ssdata1)),grep("arm", names(ssdata1)),grep("classe", names(ssdata1)))
+ssdata2 <- ssdata1[,modelcols]
+end.rcode-->
+
+<p> We have been supplied with a single training file and to avoid any ambiguity whilst marking I will run 2 types of validation.  The first is by splitting out a 30% subset from our training data to create a validation model.  The second method of running cross validation as you will see later is to use the train function in the caret package to run multiple repeated samples.   </p>
+
+
+<!--begin.rcode
+library(caret)
+set.seed(17)
+inTrain <- createDataPartition(ssdata2$classe, p=0.7, list = FALSE)
+trainData <- ssdata2[inTrain,]
+validateData <- ssdata2[-inTrain,]
+
+dim(trainData);dim(validateData)
+end.rcode-->
+<h2> Choosing and building our model</h2>
+
+<p>As we have mulitple categorical values within our predictor we will look to run a random forest model on this dataset first </p>
+
+<p>A key point for this project was to make sure we <b>cross validated</b> our model.  As I mentioned earlier we have created a validation dataset above and will also use the train package and it's trControl parameter to run multiple repeated cross validations whilst building the model.  This will then select the most accurate model from it's calculations  </p>
+
+<p>Running multiple models can take quite some time and to make sure we use all our CPU cores the doParallel library is loaded.  If this code is being run elsewhere please update the 4 value on the line starting cl with the number of cores on your device.  Also for reproducibility we will set a seed. </p>
+
+
+<!--begin.rcode
+library(doParallel)
+cl <- makePSOCKcluster(4)
+registerDoParallel(cl)
+set.seed(17)
+modelctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 3)
+modelfit <- train(classe~., data= trainData, method="rf", trControl = modelctrl)
+stopCluster(cl)
+
+modelfit
+modelfit$finalModel
+end.rcode-->
+
+<p>From our modelfit summary we can see that repeat cross validation was done on the test data set, there is a less than 1% out of sample/box error rate and an accuracy of just over 99% </p>
+
+<h2> Validation </h2>
+<p>We will also validate this model against the validation dataset created earlier </p>
+
+<!--begin.rcode
+predvalidate <- predict(modelfit, newdata= validateData)
+confusionMatrix(predvalidate,validateData$classe)
+end.rcode-->
+
+<p>The predictions against the validation dataset have also shown an accuracy over 99%</p>
+
+<h2> Project Test Cases </h2>
+
+<p>We will now import the 20 test cases for which we do not have the classe value and run our prediction model on this.  To be able to predict on these we need to make sure these contain the same features used to build our model and so we make sure we only select the same columns as used in our model first. </p>
+
+<!--begin.rcode
+completeTestData <- read.csv(file="test.csv", na.strings = c("", "#DIV/0!", "NA"))
+testcols <- names(completeTestData) %in% names(trainData)
+testdata <- completeTestData[,testcols]
+testpredict <- predict(modelfit, newdata = testdata)
+testpredict
+end.rcode-->
+
+
+<p>For reference this produced a 100% accuracy when submitting our results on the course website </p>
+
+</body>
+</html>

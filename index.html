@@ -1,0 +1,313 @@
+<html>
+
+<head>
+<style type="text/css">
+.knitr .inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+}
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage .left {
+  text-align: left;
+}
+.rimage .right {
+  text-align: right;
+}
+.rimage .center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style><h1>Analysing Barbell Exercises with a Wearable Device</h1></title>
+</head>
+
+<body>
+
+<h2> Synopsis </h2>
+
+<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. </p>
+
+<p>One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset)</p>
+
+<h2> Importing and transforming our dataset</h2>
+
+<div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">download.file</span><span class="hl std">(</span><span class="hl str">&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;train.csv&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">download.file</span><span class="hl std">(</span><span class="hl str">&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;test.csv&quot;</span><span class="hl std">)</span>
+
+<span class="hl std">completeTrainData</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl kwc">file</span><span class="hl std">=</span><span class="hl str">&quot;train.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">na.strings</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;#DIV/0!&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;NA&quot;</span><span class="hl std">))</span>
+</pre></div>
+</div></div>
+<p>To start off with we have downloaded both the training and test (final prediction datasets).  The dataset was then imported and any values that were not available are set to NA  </p>
+
+<p>We then subset our training data by to remove any rows containg NA values as these would otherwise make it difficult to create an accurate model against. </p>
+
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">datarows</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">which</span><span class="hl std">(</span><span class="hl kwd">apply</span><span class="hl std">(</span><span class="hl opt">!</span><span class="hl kwd">is.na</span><span class="hl std">(completeTrainData),</span> <span class="hl num">2</span><span class="hl std">, all))</span>
+<span class="hl std">ssdata1</span> <span class="hl kwb">&lt;-</span> <span class="hl std">completeTrainData[,datarows]</span>
+<span class="hl kwd">str</span><span class="hl std">(ssdata1)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 'data.frame':	19622 obs. of  60 variables:
+##  $ X                   : int  1 2 3 4 5 6 7 8 9 10 ...
+##  $ user_name           : Factor w/ 6 levels &quot;adelmo&quot;,&quot;carlitos&quot;,..: 2 2 2 2 2 2 2 2 2 2 ...
+##  $ raw_timestamp_part_1: int  1323084231 1323084231 1323084231 1323084232 1323084232 1323084232 1323084232 1323084232 1323084232 1323084232 ...
+##  $ raw_timestamp_part_2: int  788290 808298 820366 120339 196328 304277 368296 440390 484323 484434 ...
+##  $ cvtd_timestamp      : Factor w/ 20 levels &quot;02/12/2011 13:32&quot;,..: 9 9 9 9 9 9 9 9 9 9 ...
+##  $ new_window          : Factor w/ 2 levels &quot;no&quot;,&quot;yes&quot;: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ num_window          : int  11 11 11 12 12 12 12 12 12 12 ...
+##  $ roll_belt           : num  1.41 1.41 1.42 1.48 1.48 1.45 1.42 1.42 1.43 1.45 ...
+##  $ pitch_belt          : num  8.07 8.07 8.07 8.05 8.07 8.06 8.09 8.13 8.16 8.17 ...
+##  $ yaw_belt            : num  -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 -94.4 ...
+##  $ total_accel_belt    : int  3 3 3 3 3 3 3 3 3 3 ...
+##  $ gyros_belt_x        : num  0 0.02 0 0.02 0.02 0.02 0.02 0.02 0.02 0.03 ...
+##  $ gyros_belt_y        : num  0 0 0 0 0.02 0 0 0 0 0 ...
+##  $ gyros_belt_z        : num  -0.02 -0.02 -0.02 -0.03 -0.02 -0.02 -0.02 -0.02 -0.02 0 ...
+##  $ accel_belt_x        : int  -21 -22 -20 -22 -21 -21 -22 -22 -20 -21 ...
+##  $ accel_belt_y        : int  4 4 5 3 2 4 3 4 2 4 ...
+##  $ accel_belt_z        : int  22 22 23 21 24 21 21 21 24 22 ...
+##  $ magnet_belt_x       : int  -3 -7 -2 -6 -6 0 -4 -2 1 -3 ...
+##  $ magnet_belt_y       : int  599 608 600 604 600 603 599 603 602 609 ...
+##  $ magnet_belt_z       : int  -313 -311 -305 -310 -302 -312 -311 -313 -312 -308 ...
+##  $ roll_arm            : num  -128 -128 -128 -128 -128 -128 -128 -128 -128 -128 ...
+##  $ pitch_arm           : num  22.5 22.5 22.5 22.1 22.1 22 21.9 21.8 21.7 21.6 ...
+##  $ yaw_arm             : num  -161 -161 -161 -161 -161 -161 -161 -161 -161 -161 ...
+##  $ total_accel_arm     : int  34 34 34 34 34 34 34 34 34 34 ...
+##  $ gyros_arm_x         : num  0 0.02 0.02 0.02 0 0.02 0 0.02 0.02 0.02 ...
+##  $ gyros_arm_y         : num  0 -0.02 -0.02 -0.03 -0.03 -0.03 -0.03 -0.02 -0.03 -0.03 ...
+##  $ gyros_arm_z         : num  -0.02 -0.02 -0.02 0.02 0 0 0 0 -0.02 -0.02 ...
+##  $ accel_arm_x         : int  -288 -290 -289 -289 -289 -289 -289 -289 -288 -288 ...
+##  $ accel_arm_y         : int  109 110 110 111 111 111 111 111 109 110 ...
+##  $ accel_arm_z         : int  -123 -125 -126 -123 -123 -122 -125 -124 -122 -124 ...
+##  $ magnet_arm_x        : int  -368 -369 -368 -372 -374 -369 -373 -372 -369 -376 ...
+##  $ magnet_arm_y        : int  337 337 344 344 337 342 336 338 341 334 ...
+##  $ magnet_arm_z        : int  516 513 513 512 506 513 509 510 518 516 ...
+##  $ roll_dumbbell       : num  13.1 13.1 12.9 13.4 13.4 ...
+##  $ pitch_dumbbell      : num  -70.5 -70.6 -70.3 -70.4 -70.4 ...
+##  $ yaw_dumbbell        : num  -84.9 -84.7 -85.1 -84.9 -84.9 ...
+##  $ total_accel_dumbbell: int  37 37 37 37 37 37 37 37 37 37 ...
+##  $ gyros_dumbbell_x    : num  0 0 0 0 0 0 0 0 0 0 ...
+##  $ gyros_dumbbell_y    : num  -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 -0.02 ...
+##  $ gyros_dumbbell_z    : num  0 0 0 -0.02 0 0 0 0 0 0 ...
+##  $ accel_dumbbell_x    : int  -234 -233 -232 -232 -233 -234 -232 -234 -232 -235 ...
+##  $ accel_dumbbell_y    : int  47 47 46 48 48 48 47 46 47 48 ...
+##  $ accel_dumbbell_z    : int  -271 -269 -270 -269 -270 -269 -270 -272 -269 -270 ...
+##  $ magnet_dumbbell_x   : int  -559 -555 -561 -552 -554 -558 -551 -555 -549 -558 ...
+##  $ magnet_dumbbell_y   : int  293 296 298 303 292 294 295 300 292 291 ...
+##  $ magnet_dumbbell_z   : num  -65 -64 -63 -60 -68 -66 -70 -74 -65 -69 ...
+##  $ roll_forearm        : num  28.4 28.3 28.3 28.1 28 27.9 27.9 27.8 27.7 27.7 ...
+##  $ pitch_forearm       : num  -63.9 -63.9 -63.9 -63.9 -63.9 -63.9 -63.9 -63.8 -63.8 -63.8 ...
+##  $ yaw_forearm         : num  -153 -153 -152 -152 -152 -152 -152 -152 -152 -152 ...
+##  $ total_accel_forearm : int  36 36 36 36 36 36 36 36 36 36 ...
+##  $ gyros_forearm_x     : num  0.03 0.02 0.03 0.02 0.02 0.02 0.02 0.02 0.03 0.02 ...
+##  $ gyros_forearm_y     : num  0 0 -0.02 -0.02 0 -0.02 0 -0.02 0 0 ...
+##  $ gyros_forearm_z     : num  -0.02 -0.02 0 0 -0.02 -0.03 -0.02 0 -0.02 -0.02 ...
+##  $ accel_forearm_x     : int  192 192 196 189 189 193 195 193 193 190 ...
+##  $ accel_forearm_y     : int  203 203 204 206 206 203 205 205 204 205 ...
+##  $ accel_forearm_z     : int  -215 -216 -213 -214 -214 -215 -215 -213 -214 -215 ...
+##  $ magnet_forearm_x    : int  -17 -18 -18 -16 -17 -9 -18 -9 -16 -22 ...
+##  $ magnet_forearm_y    : num  654 661 658 658 655 660 659 660 653 656 ...
+##  $ magnet_forearm_z    : num  476 473 469 469 473 478 470 474 476 473 ...
+##  $ classe              : Factor w/ 5 levels &quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;D&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+</pre></div>
+</div></div>
+
+<p>We have been asked to use the data from the sensors on the dumbells, arms, and belts and the str command run above shows some additional columns still.  We will use the grep command to further subset this data. </p>
+
+
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">modelcols</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl kwd">grep</span><span class="hl std">(</span><span class="hl str">&quot;bel&quot;</span><span class="hl std">,</span> <span class="hl kwd">names</span><span class="hl std">(ssdata1)),</span><span class="hl kwd">grep</span><span class="hl std">(</span><span class="hl str">&quot;arm&quot;</span><span class="hl std">,</span> <span class="hl kwd">names</span><span class="hl std">(ssdata1)),</span><span class="hl kwd">grep</span><span class="hl std">(</span><span class="hl str">&quot;classe&quot;</span><span class="hl std">,</span> <span class="hl kwd">names</span><span class="hl std">(ssdata1)))</span>
+<span class="hl std">ssdata2</span> <span class="hl kwb">&lt;-</span> <span class="hl std">ssdata1[,modelcols]</span>
+</pre></div>
+</div></div>
+
+<p> We have been supplied with a single training file and to avoid any ambiguity whilst marking I will run 2 types of validation.  The first is by splitting out a 30% subset from our training data to create a validation model.  The second method of running cross validation as you will see later is to use the train function in the caret package to run multiple repeated samples.   </p>
+
+
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">library</span><span class="hl std">(caret)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: lattice
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: ggplot2
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">set.seed</span><span class="hl std">(</span><span class="hl num">17</span><span class="hl std">)</span>
+<span class="hl std">inTrain</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">createDataPartition</span><span class="hl std">(ssdata2</span><span class="hl opt">$</span><span class="hl std">classe,</span> <span class="hl kwc">p</span><span class="hl std">=</span><span class="hl num">0.7</span><span class="hl std">,</span> <span class="hl kwc">list</span> <span class="hl std">=</span> <span class="hl num">FALSE</span><span class="hl std">)</span>
+<span class="hl std">trainData</span> <span class="hl kwb">&lt;-</span> <span class="hl std">ssdata2[inTrain,]</span>
+<span class="hl std">validateData</span> <span class="hl kwb">&lt;-</span> <span class="hl std">ssdata2[</span><span class="hl opt">-</span><span class="hl std">inTrain,]</span>
+
+<span class="hl kwd">dim</span><span class="hl std">(trainData);</span><span class="hl kwd">dim</span><span class="hl std">(validateData)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 13737    53
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] 5885   53
+</pre></div>
+</div></div>
+<h2> Choosing and building our model</h2>
+
+<p>As we have mulitple categorical values within our predictor we will look to run a random forest model on this dataset first </p>
+
+<p>A key point for this project was to make sure we <b>cross validated</b> our model.  As I mentioned earlier we have created a validation dataset above and will also use the train package and it's trControl parameter to run multiple repeated cross validations whilst building the model.  This will then select the most accurate model from it's calculations  </p>
+
+<p>Running multiple models can take quite some time and to make sure we use all our CPU cores the doParallel library is loaded.  If this code is being run elsewhere please update the 4 value on the line starting cl with the number of cores on your device.  Also for reproducibility we will set a seed. </p>
+
+
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">library</span><span class="hl std">(doParallel)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: foreach
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: iterators
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: parallel
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">cl</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">makePSOCKcluster</span><span class="hl std">(</span><span class="hl num">4</span><span class="hl std">)</span>
+<span class="hl kwd">registerDoParallel</span><span class="hl std">(cl)</span>
+<span class="hl kwd">set.seed</span><span class="hl std">(</span><span class="hl num">17</span><span class="hl std">)</span>
+<span class="hl std">modelctrl</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">trainControl</span><span class="hl std">(</span><span class="hl kwc">method</span> <span class="hl std">=</span> <span class="hl str">&quot;repeatedcv&quot;</span><span class="hl std">,</span> <span class="hl kwc">number</span> <span class="hl std">=</span> <span class="hl num">5</span><span class="hl std">,</span> <span class="hl kwc">repeats</span> <span class="hl std">=</span> <span class="hl num">3</span><span class="hl std">)</span>
+<span class="hl std">modelfit</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">train</span><span class="hl std">(classe</span><span class="hl opt">~</span><span class="hl std">.,</span> <span class="hl kwc">data</span><span class="hl std">= trainData,</span> <span class="hl kwc">method</span><span class="hl std">=</span><span class="hl str">&quot;rf&quot;</span><span class="hl std">,</span> <span class="hl kwc">trControl</span> <span class="hl std">= modelctrl)</span>
+<span class="hl kwd">stopCluster</span><span class="hl std">(cl)</span>
+
+<span class="hl std">modelfit</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## Random Forest 
+## 
+## 13737 samples
+##    52 predictor
+##     5 classes: 'A', 'B', 'C', 'D', 'E' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (5 fold, repeated 3 times) 
+## Summary of sample sizes: 10990, 10989, 10990, 10989, 10990, 10990, ... 
+## Resampling results across tuning parameters:
+## 
+##   mtry  Accuracy   Kappa    
+##    2    0.9904634  0.9879347
+##   27    0.9896628  0.9869223
+##   52    0.9825045  0.9778653
+## 
+## Accuracy was used to select the optimal model using the largest value.
+## The final value used for the model was mtry = 2.
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">modelfit</span><span class="hl opt">$</span><span class="hl std">finalModel</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## 
+## Call:
+##  randomForest(x = x, y = y, mtry = param$mtry) 
+##                Type of random forest: classification
+##                      Number of trees: 500
+## No. of variables tried at each split: 2
+## 
+##         OOB estimate of  error rate: 0.73%
+## Confusion matrix:
+##      A    B    C    D    E  class.error
+## A 3905    1    0    0    0 0.0002560164
+## B   28 2623    7    0    0 0.0131677953
+## C    0   19 2374    3    0 0.0091819699
+## D    0    0   34 2216    2 0.0159857904
+## E    0    0    1    5 2519 0.0023762376
+</pre></div>
+</div></div>
+
+<p>From our modelfit summary we can see that repeat cross validation was done on the test data set, there is a less than 1% out of sample/box error rate and an accuracy of just over 99% </p>
+
+<h2> Validation </h2>
+<p>We will also validate this model against the validation dataset created earlier </p>
+
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">predvalidate</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(modelfit,</span> <span class="hl kwc">newdata</span><span class="hl std">= validateData)</span>
+<span class="hl kwd">confusionMatrix</span><span class="hl std">(predvalidate,validateData</span><span class="hl opt">$</span><span class="hl std">classe)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 1674    3    0    0    0
+##          B    0 1135   17    0    0
+##          C    0    1 1006   15    0
+##          D    0    0    3  948    3
+##          E    0    0    0    1 1079
+## 
+## Overall Statistics
+##                                           
+##                Accuracy : 0.9927          
+##                  95% CI : (0.9902, 0.9947)
+##     No Information Rate : 0.2845          
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16       
+##                                           
+##                   Kappa : 0.9908          
+##  Mcnemar's Test P-Value : NA              
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   0.9965   0.9805   0.9834   0.9972
+## Specificity            0.9993   0.9964   0.9967   0.9988   0.9998
+## Pos Pred Value         0.9982   0.9852   0.9843   0.9937   0.9991
+## Neg Pred Value         1.0000   0.9992   0.9959   0.9968   0.9994
+## Prevalence             0.2845   0.1935   0.1743   0.1638   0.1839
+## Detection Rate         0.2845   0.1929   0.1709   0.1611   0.1833
+## Detection Prevalence   0.2850   0.1958   0.1737   0.1621   0.1835
+## Balanced Accuracy      0.9996   0.9965   0.9886   0.9911   0.9985
+</pre></div>
+</div></div>
+
+<p>The predictions against the validation dataset have also shown an accuracy over 99%</p>
+
+<h2> Project Test Cases </h2>
+
+<p>We will now import the 20 test cases for which we do not have the classe value and run our prediction model on this.  To be able to predict on these we need to make sure these contain the same features used to build our model and so we make sure we only select the same columns as used in our model first. </p>
+
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">completeTestData</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl kwc">file</span><span class="hl std">=</span><span class="hl str">&quot;test.csv&quot;</span><span class="hl std">,</span> <span class="hl kwc">na.strings</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;#DIV/0!&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;NA&quot;</span><span class="hl std">))</span>
+<span class="hl std">testcols</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">names</span><span class="hl std">(completeTestData)</span> <span class="hl opt">%in%</span> <span class="hl kwd">names</span><span class="hl std">(trainData)</span>
+<span class="hl std">testdata</span> <span class="hl kwb">&lt;-</span> <span class="hl std">completeTestData[,testcols]</span>
+<span class="hl std">testpredict</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">predict</span><span class="hl std">(modelfit,</span> <span class="hl kwc">newdata</span> <span class="hl std">= testdata)</span>
+<span class="hl std">testpredict</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E
+</pre></div>
+</div></div>
+
+
+<p>For reference this produced a 100% accuracy when submitting our results on the course website </p>
+
+</body>
+</html>
